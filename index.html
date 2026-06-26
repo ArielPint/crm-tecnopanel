@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM TECNOPANEL</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .sidebar-link { transition: all 0.15s; border-left: 3px solid transparent; }
+  .sidebar-link:hover { background: rgba(255,255,255,0.08); }
+  .sidebar-link.active { background: rgba(96,165,250,0.2); border-left-color: #60a5fa; color: #93c5fd; }
+  .opp-card { transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+  .opp-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .kanban-track { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; }
+  .kanban-col { min-width: 260px; max-width: 260px; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .fade-in { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .slide-in { animation: slideIn .25s ease; }
+  @keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
+  .stage-step { flex:1; position:relative; text-align:center; }
+  .stage-step:not(:last-child)::after { content:''; position:absolute; top:11px; left:50%; width:100%; height:2px; background:#e2e8f0; z-index:0; }
+  .stage-step.done:not(:last-child)::after { background:#10b981; }
+  .stage-dot { width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; position:relative; z-index:1; }
+  .stage-dot.done { background:#10b981; color:white; }
+  .stage-dot.active { background:#2563eb; color:white; box-shadow:0 0 0 3px rgba(37,99,235,0.2); }
+  .stage-dot.skip { background:#f3f4f6; color:#9ca3af; border: 2px dashed #d1d5db; }
+  .stage-dot.pending { background:#f3f4f6; color:#9ca3af; border:2px solid #e2e8f0; }
+  .modal-bg { position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); z-index:40; display:none; align-items:center; justify-content:center; }
+  .modal-bg.open { display:flex; }
+  .panel-bg { position:fixed; inset:0; background:rgba(15,23,42,0.4); z-index:40; display:none; }
+  .panel-bg.open { display:block; }
+  .side-panel { position:fixed; right:0; top:0; bottom:0; width:580px; background:white; z-index:50; overflow-y:auto; box-shadow:-8px 0 40px rgba(0,0,0,0.15); display:none; }
+  .side-panel.open { display:block; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:9999px; font-size:11px; font-weight:600; }
+  .tag { display:inline-flex; align-items:center; padding:1px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+  .progress-bar { height:6px; border-radius:3px; background:#e2e8f0; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#2563eb,#7c3aed); transition:width .4s ease; }
+  input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 2px rgba(37,99,235,0.3); }
+</style>
+</head>
+<body class="bg-slate-50">
+
+<!-- =========================================================
+     LOGIN
+     ========================================================= -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md mx-4">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-blue-800 rounded-xl mb-4">
+        <span class="text-white text-xl font-black">TP</span>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">TECNOPANEL CRM</h1>
+      <p class="text-gray-400 text-sm mt-1">Sistema de Gestión Comercial</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Correo</label>
+        <input type="email" value="ariel.pinto.a@gmail.com" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Contraseña</label>
+        <input type="password" value="••••••••" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm bg-gray-50">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ver como rol (demo)</label>
+        <div class="grid grid-cols-3 gap-2" id="rol-selector">
+          <label class="rol-opt flex items-center gap-2 border-2 border-blue-600 bg-blue-50 rounded-lg px-3 py-2 cursor-pointer" data-rol="admin">
+            <input type="radio" name="rol" value="admin" checked class="hidden"><span class="text-xs font-semibold text-blue-700">Admin</span>
+          </label>
+          <label class="rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300" data-rol="vendedor">
+            <input type="radio" name="rol" value="vendedor" class="hidden"><span class="text-xs font-medium">Vendedor</span>
+          </label>
+          <label class="rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300" data-rol="ingeniero">
+            <input type="radio" name="rol" value="ingeniero" class="hidden"><span class="text-xs font-medium">Ingeniero</span>
+          </label>
+          <label class="rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300" data-rol="cubicador">
+            <input type="radio" name="rol" value="cubicador" class="hidden"><span class="text-xs font-medium">Cubicador</span>
+          </label>
+          <label class="rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300" data-rol="presupuestista">
+            <input type="radio" name="rol" value="presupuestista" class="hidden"><span class="text-xs font-medium">Presupuestos</span>
+          </label>
+          <label class="rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300" data-rol="finanzas">
+            <input type="radio" name="rol" value="finanzas" class="hidden"><span class="text-xs font-medium">Finanzas</span>
+          </label>
+        </div>
+      </div>
+      <button onclick="doLogin()" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition-colors text-sm">
+        Iniciar Sesión →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MAIN APP
+     ========================================================= -->
+<div id="main-app" class="hidden h-screen flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-56 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0">
+    <div class="px-4 py-5 border-b border-slate-700/50">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs">TP</div>
+        <div>
+          <div class="text-white font-semibold text-sm">TECNOPANEL</div>
+          <div class="text-slate-500 text-xs">CRM Comercial</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 p-2 space-y-0.5 overflow-y-auto">
+      <p class="text-slate-600 text-xs uppercase tracking-widest px-3 pt-3 pb-1.5">Principal</p>
+      <a href="#" onclick="showView('dashboard');return false;" class="sidebar-link active flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="dashboard">
+        <span>📊</span> Dashboard
+      </a>
+      <a href="#" onclick="showView('oportunidades');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="oportunidades">
+        <span>🎯</span> Oportunidades
+      </a>
+      <p class="text-slate-600 text-xs uppercase tracking-widest px-3 pt-3 pb-1.5">Módulos</p>
+      <a href="#" onclick="showView('ingenieria');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="ingenieria">
+        <span>📐</span> Ingeniería
+      </a>
+      <a href="#" onclick="showView('cubicacion');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="cubicacion">
+        <span>📏</span> Cubicación
+      </a>
+      <a href="#" onclick="showView('presupuestos');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="presupuestos">
+        <span>💰</span> Presupuestos
+      </a>
+      <a href="#" onclick="showView('credito');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="credito">
+        <span>🏦</span> Eval. Crediticia
+      </a>
+      <p class="text-slate-600 text-xs uppercase tracking-widest px-3 pt-3 pb-1.5">Sistema</p>
+      <a href="#" onclick="showView('clientes');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="clientes">
+        <span>🏢</span> Clientes
+      </a>
+      <a href="#" onclick="showView('usuarios');return false;" class="sidebar-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" data-view="usuarios">
+        <span>👥</span> Usuarios
+      </a>
+    </nav>
+    <div class="p-3 border-t border-slate-700/50">
+      <div class="flex items-center gap-2.5 px-2 py-2">
+        <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold" id="sb-avatar">AP</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-white text-xs font-medium truncate" id="sb-nombre">Ariel Pinto</div>
+          <div class="text-slate-500 text-xs capitalize" id="sb-rol">Admin</div>
+        </div>
+        <button onclick="doLogout()" title="Salir" class="text-slate-500 hover:text-slate-300 text-xs">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <div>
+          <h1 class="text-base font-semibold text-gray-900" id="view-title">Dashboard</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="text" placeholder="Buscar oportunidad…" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-48 bg-gray-50 text-gray-600">
+        <button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg relative">
+          🔔<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+        </button>
+        <button onclick="openModal('modal-nueva-opp')" class="bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <span class="text-base leading-none">+</span> Nueva Oportunidad
+        </button>
+      </div>
+    </header>
+
+    <!-- Views -->
+    <main class="flex-1 overflow-auto" id="main-content">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="view-dashboard" class="p-6 fade-in">
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pipeline Total</span>
+              <span class="text-xl">💼</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">$453M</div>
+            <div class="text-xs text-green-600 font-medium mt-1">▲ 12% vs mes anterior</div>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Oport. Activas</span>
+              <span class="text-xl">🎯</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">7</div>
+            <div class="text-xs text-gray-400 mt-1">En pipeline activo</div>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ganados (mes)</span>
+              <span class="text-xl">✅</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">$95M</div>
+            <div class="text-xs text-green-600 font-medium mt-1">1 oportunidad cerrada</div>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tasa Conversión</span>
+              <span class="text-xl">📈</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">67%</div>
+            <div class="text-xs text-gray-400 mt-1">Últimos 6 meses</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Funnel -->
+          <div class="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h3 class="font-semibold text-gray-900 text-sm mb-4">Pipeline por Etapa</h3>
+            <div id="stage-funnel" class="space-y-2.5"></div>
+          </div>
+          <!-- Actividad -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h3 class="font-semibold text-gray-900 text-sm mb-4">Actividad Reciente</h3>
+            <div class="space-y-3" id="actividad-list"></div>
+          </div>
+        </div>
+
+        <!-- Tabla reciente -->
+        <div class="mt-4 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-gray-900 text-sm">Oportunidades Recientes</h3>
+            <button onclick="showView('oportunidades')" class="text-blue-600 text-xs font-medium hover:underline">Ver todas →</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-50">
+                <th class="text-left pb-2 font-semibold">Oportunidad</th>
+                <th class="text-left pb-2 font-semibold">Cliente</th>
+                <th class="text-left pb-2 font-semibold">Tipo</th>
+                <th class="text-left pb-2 font-semibold">Etapa</th>
+                <th class="text-right pb-2 font-semibold">Importe</th>
+                <th class="text-left pb-2 font-semibold">Prob.</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── OPORTUNIDADES ── -->
+      <div id="view-oportunidades" class="hidden p-6 fade-in">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <button onclick="setOppView('kanban')" id="btn-kanban" class="px-4 py-2 text-xs font-semibold bg-blue-600 text-white">⊞ Kanban</button>
+            <button onclick="setOppView('tabla')" id="btn-tabla" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">☰ Lista</button>
+          </div>
+          <select class="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 bg-white focus:ring-2 focus:ring-blue-500">
+            <option>Todos los tipos</option>
+            <option>Proyecto</option>
+            <option>Producto</option>
+            <option>Kit</option>
+          </select>
+          <select class="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 bg-white focus:ring-2 focus:ring-blue-500">
+            <option>Todos los responsables</option>
+            <option>Carlos Méndez</option>
+            <option>Ana Rojas</option>
+            <option>María Silva</option>
+          </select>
+          <div class="ml-auto text-xs text-gray-400" id="opp-count"></div>
+        </div>
+        <!-- Kanban -->
+        <div id="opp-kanban" class="kanban-track"></div>
+        <!-- Tabla -->
+        <div id="opp-tabla" class="hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Oportunidad</th>
+                <th class="text-left px-4 py-3 font-semibold">Cliente</th>
+                <th class="text-left px-4 py-3 font-semibold">Tipo</th>
+                <th class="text-left px-4 py-3 font-semibold">Etapa</th>
+                <th class="text-left px-4 py-3 font-semibold">Responsable</th>
+                <th class="text-right px-5 py-3 font-semibold">Importe</th>
+                <th class="text-center px-4 py-3 font-semibold">Prob.</th>
+              </tr>
+            </thead>
+            <tbody id="opp-tabla-body" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── INGENIERÍA ── -->
+      <div id="view-ingenieria" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold text-gray-900">Proyectos en Ingeniería</h3>
+              <p class="text-xs text-gray-400 mt-0.5">Tareas activas asignadas al equipo</p>
+            </div>
+            <button onclick="openModal('modal-nueva-tarea')" class="text-xs bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-800">+ Nueva Tarea</button>
+          </div>
+          <div id="ing-content" class="divide-y divide-gray-50"></div>
+        </div>
+      </div>
+
+      <!-- ── CUBICACIÓN ── -->
+      <div id="view-cubicacion" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-900">Cubicaciones</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Asignación de costos y carga de Excel</p>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Oportunidad</th>
+                <th class="text-left px-4 py-3 font-semibold">Cubicador</th>
+                <th class="text-left px-4 py-3 font-semibold">Estado</th>
+                <th class="text-right px-4 py-3 font-semibold">Costo Total</th>
+                <th class="text-left px-4 py-3 font-semibold">Archivo</th>
+                <th class="text-left px-4 py-3 font-semibold">Fecha</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="cub-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PRESUPUESTOS ── -->
+      <div id="view-presupuestos" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-900">Área de Presupuestos</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Valorización de cubicaciones</p>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Oportunidad</th>
+                <th class="text-left px-4 py-3 font-semibold">Presupuestista</th>
+                <th class="text-left px-4 py-3 font-semibold">Estado</th>
+                <th class="text-right px-4 py-3 font-semibold">Monto Cubicación</th>
+                <th class="text-right px-4 py-3 font-semibold">Monto Presupuesto</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="pres-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── EVALUACIÓN CREDITICIA ── -->
+      <div id="view-credito" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-900">Evaluación Crediticia</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Clientes en revisión — Área Finanzas</p>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Oportunidad</th>
+                <th class="text-left px-4 py-3 font-semibold">Cliente</th>
+                <th class="text-left px-4 py-3 font-semibold">Tipo Cliente</th>
+                <th class="text-left px-4 py-3 font-semibold">Responsable Finanzas</th>
+                <th class="text-left px-4 py-3 font-semibold">Resultado</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="cred-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── CLIENTES ── -->
+      <div id="view-clientes" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+            <div><h3 class="font-semibold text-gray-900">Clientes</h3><p class="text-xs text-gray-400">Base de clientes activos</p></div>
+            <button class="text-xs bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-800">+ Nuevo Cliente</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Empresa</th>
+                <th class="text-left px-4 py-3 font-semibold">RUT</th>
+                <th class="text-left px-4 py-3 font-semibold">Contacto</th>
+                <th class="text-left px-4 py-3 font-semibold">Industria</th>
+                <th class="text-left px-4 py-3 font-semibold">Tipo</th>
+                <th class="text-center px-4 py-3 font-semibold">Crédito</th>
+                <th class="text-right px-4 py-3 font-semibold">Oport.</th>
+              </tr>
+            </thead>
+            <tbody id="cli-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── USUARIOS ── -->
+      <div id="view-usuarios" class="hidden p-6 fade-in">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+            <div><h3 class="font-semibold text-gray-900">Usuarios del Sistema</h3><p class="text-xs text-gray-400">Gestión de roles y accesos</p></div>
+            <button class="text-xs bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-800">+ Nuevo Usuario</button>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-xs text-gray-500 uppercase tracking-wide">
+                <th class="text-left px-5 py-3 font-semibold">Nombre</th>
+                <th class="text-left px-4 py-3 font-semibold">Email</th>
+                <th class="text-left px-4 py-3 font-semibold">Rol</th>
+                <th class="text-center px-4 py-3 font-semibold">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="usr-table" class="divide-y divide-gray-50"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- =========================================================
+     SIDE PANEL — DETALLE OPORTUNIDAD
+     ========================================================= -->
+<div class="panel-bg" id="panel-bg" onclick="closePanel()"></div>
+<div class="side-panel slide-in" id="detail-panel">
+  <div id="panel-content"></div>
+</div>
+
+<!-- =========================================================
+     MODAL — NUEVA OPORTUNIDAD
+     ========================================================= -->
+<div class="modal-bg" id="modal-nueva-opp">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">Nueva Oportunidad</h2>
+      <button onclick="closeModal('modal-nueva-opp')" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Nombre de oportunidad *</label>
+          <input type="text" placeholder="Ej: Proyecto Torre A - COPEC" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cliente *</label>
+          <select class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">Seleccionar cliente</option>
+            <option>COPEC S.A.</option>
+            <option>BCI Banco</option>
+            <option>CMPC</option>
+            <option>Falabella</option>
+            <option>Cencosud</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipo de Venta *</label>
+          <select id="modal-tipo" onchange="updateModalFlow()" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">Seleccionar tipo</option>
+            <option value="Proyecto">Proyecto</option>
+            <option value="Producto">Producto</option>
+            <option value="Kit">Kit</option>
+          </select>
+        </div>
+        <div id="req-ing-wrap" class="col-span-2 hidden">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="req-ing" class="w-4 h-4 rounded text-blue-600">
+            <span class="text-sm text-gray-700">¿Requiere Ingeniería? <span class="text-gray-400 text-xs">(aplica para Kit)</span></span>
+          </label>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Importe Estimado</label>
+          <input type="text" placeholder="$ 0" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha Cierre Estimada</label>
+          <input type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Responsable</label>
+          <select class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+            <option>Carlos Méndez</option>
+            <option>Ana Rojas</option>
+            <option>María Silva</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Probabilidad %</label>
+          <input type="number" min="0" max="100" placeholder="50" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Flujo de Etapas</label>
+          <div id="modal-flow-preview" class="text-xs text-gray-400 italic">Selecciona el tipo de venta para ver el flujo</div>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Observaciones</label>
+          <textarea rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Contexto de la solicitud, fuente, etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+      <button onclick="closeModal('modal-nueva-opp')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+      <button onclick="closeModal('modal-nueva-opp')" class="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg transition-colors">Crear Oportunidad</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA TAREA -->
+<div class="modal-bg" id="modal-nueva-tarea">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">Nueva Tarea de Ingeniería</h2>
+      <button onclick="closeModal('modal-nueva-tarea')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Oportunidad</label>
+        <select class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+          <option>Proyecto Torre A - COPEC</option>
+          <option>Fachada Corporativa HQ - Falabella</option>
+          <option>Sistema Modular Edificio B - Cencosud</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Nombre de la Tarea</label>
+        <input type="text" placeholder="Ej: Planos planta baja" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Responsable</label>
+          <select class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+            <option>Juan Torres (Ingeniero)</option>
+            <option>Pedro Vega (Dibujante)</option>
+            <option>Luis Mora (Ingeniero)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Horas Estimadas</label>
+          <input type="number" placeholder="0" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Descripción</label>
+        <textarea rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+      <button onclick="closeModal('modal-nueva-tarea')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+      <button onclick="closeModal('modal-nueva-tarea')" class="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg">Crear Tarea</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// MOCK DATA
+// =========================================================
+const ETAPAS_ACTIVAS = ['Clasificación','Ingeniería','Cubicación','Presupuestos','Revisión Vendedor','Revisión Cliente','Evaluación Crediticia'];
+const ETAPAS_ALL = [...ETAPAS_ACTIVAS,'Ganado','Perdido'];
+
+const FLUJOS = {
+  'Proyecto': ['Clasificación','Ingeniería','Cubicación','Presupuestos','Revisión Vendedor','Revisión Cliente','Evaluación Crediticia'],
+  'Producto': ['Clasificación','Presupuestos','Revisión Vendedor','Revisión Cliente','Evaluación Crediticia'],
+  'Kit-ing': ['Clasificación','Ingeniería','Cubicación','Presupuestos','Revisión Vendedor','Revisión Cliente','Evaluación Crediticia'],
+  'Kit-noing': ['Clasificación','Presupuestos','Revisión Vendedor','Revisión Cliente','Evaluación Crediticia'],
+};
+
+const TIPO_COLORS = {
+  Proyecto: { bg:'bg-blue-100', text:'text-blue-700' },
+  Producto: { bg:'bg-green-100', text:'text-green-700' },
+  Kit: { bg:'bg-purple-100', text:'text-purple-700' },
+};
+
+const ETAPA_COLORS = {
+  'Clasificación': { bg:'bg-gray-100', text:'text-gray-600' },
+  'Ingeniería': { bg:'bg-blue-100', text:'text-blue-700' },
+  'Cubicación': { bg:'bg-indigo-100', text:'text-indigo-700' },
+  'Presupuestos': { bg:'bg-violet-100', text:'text-violet-700' },
+  'Revisión Vendedor': { bg:'bg-amber-100', text:'text-amber-700' },
+  'Revisión Cliente': { bg:'bg-orange-100', text:'text-orange-700' },
+  'Evaluación Crediticia': { bg:'bg-pink-100', text:'text-pink-700' },
+  'Ganado': { bg:'bg-green-100', text:'text-green-700' },
+  'Perdido': { bg:'bg-red-100', text:'text-red-700' },
+};
+
+const CLIENTES = [
+  { id:1, nombre:'COPEC S.A.', rut:'99.520.000-7', contacto:'Roberto Aravena', industria:'Energía', tipo:'antiguo', credito:true, opps:2 },
+  { id:2, nombre:'BCI Banco', rut:'97.006.000-6', contacto:'Claudia Muñoz', industria:'Financiero', tipo:'antiguo', credito:true, opps:1 },
+  { id:3, nombre:'CMPC', rut:'93.007.000-9', contacto:'Felipe Herrera', industria:'Industria', tipo:'antiguo', credito:false, opps:1 },
+  { id:4, nombre:'Falabella Retail S.A.', rut:'76.460.060-7', contacto:'Valeria Pinto', industria:'Retail', tipo:'nuevo', credito:false, opps:1 },
+  { id:5, nombre:'Cencosud S.A.', rut:'93.834.000-5', contacto:'Andrés López', industria:'Retail', tipo:'antiguo', credito:true, opps:2 },
+  { id:6, nombre:'Sodimac S.A.', rut:'96.928.030-6', contacto:'Mónica Riquelme', industria:'Retail', tipo:'antiguo', credito:true, opps:1 },
+];
+
+const USUARIOS = [
+  { nombre:'Ariel Pinto', email:'ariel.pinto.a@gmail.com', rol:'admin', activo:true },
+  { nombre:'Carlos Méndez', email:'c.mendez@tecnopanel.cl', rol:'vendedor', activo:true },
+  { nombre:'Ana Rojas', email:'a.rojas@tecnopanel.cl', rol:'vendedor', activo:true },
+  { nombre:'María Silva', email:'m.silva@tecnopanel.cl', rol:'gerente_ventas', activo:true },
+  { nombre:'Juan Torres', email:'j.torres@tecnopanel.cl', rol:'ingeniero', activo:true },
+  { nombre:'Pedro Vega', email:'p.vega@tecnopanel.cl', rol:'ingeniero', activo:true },
+  { nombre:'Diego Muñoz', email:'d.munoz@tecnopanel.cl', rol:'jefe_ingenieria', activo:true },
+  { nombre:'Rosa Tapia', email:'r.tapia@tecnopanel.cl', rol:'cubicador', activo:true },
+  { nombre:'Sebastián Ríos', email:'s.rios@tecnopanel.cl', rol:'presupuestista', activo:true },
+  { nombre:'Laura Campos', email:'l.campos@tecnopanel.cl', rol:'finanzas', activo:false },
+];
+
+const OPPS = [
+  { id:1, nombre:'Torre A — Estación Central', cliente:'COPEC S.A.', tipo:'Proyecto', etapa:'Ingeniería', importe:45000000, responsable:'Carlos Méndez', prob:70, fecha:'2026-09-30', requiere_ing:true, obs:'Proyecto de fachada vidriada para torre corporativa. Solicitud vía correo ejecutivo.' },
+  { id:2, nombre:'Ventanas Oficina Central', cliente:'BCI Banco', tipo:'Producto', etapa:'Revisión Cliente', importe:8500000, responsable:'Ana Rojas', prob:85, fecha:'2026-07-15', requiere_ing:false, obs:'Reposición de ventanas piso 12-15. Cliente tiene crédito aprobado.' },
+  { id:3, nombre:'Kit Módulos Planta 2', cliente:'CMPC', tipo:'Kit', etapa:'Presupuestos', importe:22000000, responsable:'Carlos Méndez', prob:60, fecha:'2026-08-20', requiere_ing:true, obs:'Kit especial con módulos de doble vidrio. Requirió ingeniería por medidas fuera de estándar.' },
+  { id:4, nombre:'Fachada Corporativa HQ', cliente:'Falabella Retail S.A.', tipo:'Proyecto', etapa:'Clasificación', importe:180000000, responsable:'María Silva', prob:40, fecha:'2026-12-01', requiere_ing:true, obs:'Mega proyecto. Solicitado por campaña outbound. En validación de documentos.' },
+  { id:5, nombre:'Cierre Vidrios Bodega Norte', cliente:'Sodimac S.A.', tipo:'Producto', etapa:'Evaluación Crediticia', importe:5500000, responsable:'Ana Rojas', prob:90, fecha:'2026-07-05', requiere_ing:false, obs:'Cliente nuevo. Requiere evaluación crediticia en Finanzas.' },
+  { id:6, nombre:'Sistema Modular Edificio B', cliente:'Cencosud S.A.', tipo:'Proyecto', etapa:'Cubicación', importe:67000000, responsable:'María Silva', prob:55, fecha:'2026-10-15', requiere_ing:true, obs:'Segunda etapa del edificio B. Ingeniería completada.' },
+  { id:7, nombre:'Mampara Divisoria Piso 8', cliente:'BCI Banco', tipo:'Kit', etapa:'Revisión Vendedor', importe:12000000, responsable:'Carlos Méndez', prob:75, fecha:'2026-07-30', requiere_ing:false, obs:'Kit estándar sin modificaciones. Presupuesto emitido, ajustando precio.' },
+  { id:8, nombre:'Muro Cortina Torre Centro', cliente:'COPEC S.A.', tipo:'Proyecto', etapa:'Ganado', importe:95000000, responsable:'María Silva', prob:100, fecha:'2026-06-10', requiere_ing:true, obs:'OC firmada. Inicio de fabricación en proceso.' },
+  { id:9, nombre:'Ventanas Residencial Las Condes', cliente:'Falabella Retail S.A.', tipo:'Producto', etapa:'Perdido', importe:18000000, responsable:'Ana Rojas', prob:0, fecha:'2026-05-20', requiere_ing:false, obs:'Perdido por precio. Competencia ofreció 15% menos.' },
+  { id:10, nombre:'Kit Oficinas Piso 3', cliente:'Cencosud S.A.', tipo:'Kit', etapa:'Clasificación', importe:9000000, responsable:'Carlos Méndez', prob:50, fecha:'2026-08-01', requiere_ing:false, obs:'Kit de vidrios templados, sin personalización requerida.' },
+];
+
+const TAREAS = [
+  { id:1, opp_id:1, nombre:'Planos arquitectónicos planta baja', responsable:'Juan Torres', horas:16, estado:'Completada', archivo:'planta_baja_v2.dwg' },
+  { id:2, opp_id:1, nombre:'Vista de fachada exterior', responsable:'Pedro Vega', horas:12, estado:'En progreso', archivo:null },
+  { id:3, opp_id:1, nombre:'Detalle de encuentros y remates', responsable:'Juan Torres', horas:8, estado:'Pendiente', archivo:null },
+  { id:4, opp_id:6, nombre:'Planos módulos estructura', responsable:'Pedro Vega', horas:20, estado:'Completada', archivo:'modulos_est_v1.dwg' },
+  { id:5, opp_id:6, nombre:'Especificaciones técnicas', responsable:'Juan Torres', horas:10, estado:'Completada', archivo:'specs_tecnicas.pdf' },
+  { id:6, opp_id:4, nombre:'Análisis de cargas fachada', responsable:'Juan Torres', horas:24, estado:'Pendiente', archivo:null },
+];
+
+const CUBICACIONES = [
+  { opp_id:6, opp:'Sistema Modular Edificio B', cubicador:'Rosa Tapia', estado:'Completada', costo:52000000, archivo:'cubicacion_edif_B.xlsx', fecha:'2026-06-15' },
+  { opp_id:3, opp:'Kit Módulos Planta 2', cubicador:'Rosa Tapia', estado:'Completada', costo:17500000, archivo:'cub_kit_planta2.xlsx', fecha:'2026-06-18' },
+  { opp_id:8, opp:'Muro Cortina Torre Centro', cubicador:'Rosa Tapia', estado:'Completada', costo:74000000, archivo:'cub_muro_cortina.xlsx', fecha:'2026-05-10' },
+];
+
+const PRESUPUESTOS_DATA = [
+  { opp_id:3, opp:'Kit Módulos Planta 2', responsable:'Sebastián Ríos', estado:'Emitido', monto_cub:17500000, monto_pres:22000000 },
+  { opp_id:7, opp:'Mampara Divisoria Piso 8', responsable:'Sebastián Ríos', estado:'Emitido', monto_cub:9800000, monto_pres:12000000 },
+  { opp_id:8, opp:'Muro Cortina Torre Centro', responsable:'Sebastián Ríos', estado:'Emitido', monto_cub:74000000, monto_pres:95000000 },
+];
+
+const CREDITOS = [
+  { opp_id:5, opp:'Cierre Vidrios Bodega Norte', cliente:'Sodimac S.A.', tipo_cli:'nuevo', responsable:'Laura Campos', resultado:'Pendiente' },
+];
+
+// =========================================================
+// STATE
+// =========================================================
+let currentView = 'dashboard';
+let currentRol = 'admin';
+let currentUser = { nombre:'Ariel Pinto', rol:'admin', email:'ariel.pinto.a@gmail.com' };
+let oppView = 'kanban';
+
+// =========================================================
+// HELPERS
+// =========================================================
+function fmt(n) {
+  if(!n) return '—';
+  if(n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+  if(n >= 1000) return '$' + (n/1000).toFixed(0) + 'K';
+  return '$' + n.toLocaleString();
+}
+function etapaBadge(e) {
+  const c = ETAPA_COLORS[e] || { bg:'bg-gray-100', text:'text-gray-600' };
+  return `<span class="badge ${c.bg} ${c.text}">${e}</span>`;
+}
+function tipoBadge(t) {
+  const c = TIPO_COLORS[t] || { bg:'bg-gray-100', text:'text-gray-600' };
+  return `<span class="tag ${c.bg} ${c.text}">${t}</span>`;
+}
+function estadoBadge(e) {
+  const map = {
+    'Pendiente': 'bg-gray-100 text-gray-600',
+    'En progreso': 'bg-blue-100 text-blue-700',
+    'Completada': 'bg-green-100 text-green-700',
+    'En Análisis': 'bg-amber-100 text-amber-700',
+    'Emitido': 'bg-violet-100 text-violet-700',
+    'Aprobado': 'bg-green-100 text-green-700',
+    'Rechazado': 'bg-red-100 text-red-700',
+  };
+  const cls = map[e] || 'bg-gray-100 text-gray-600';
+  return `<span class="badge ${cls}">${e}</span>`;
+}
+function rolLabel(r) {
+  const map = { admin:'Admin', gerente_ventas:'Gte. Ventas', gerente_general:'Gte. General', vendedor:'Vendedor', jefe_ingenieria:'Jefe Ing.', ingeniero:'Ingeniero', cubicador:'Cubicador', presupuestista:'Presupuestista', finanzas:'Finanzas' };
+  return map[r] || r;
+}
+function getFlujoKey(opp) {
+  if(opp.tipo === 'Proyecto') return 'Proyecto';
+  if(opp.tipo === 'Producto') return 'Producto';
+  return opp.requiere_ing ? 'Kit-ing' : 'Kit-noing';
+}
+
+// =========================================================
+// AUTH
+// =========================================================
+function doLogin() {
+  const rol = document.querySelector('input[name="rol"]:checked')?.value || 'admin';
+  currentRol = rol;
+  currentUser = { nombre: rol === 'admin' ? 'Ariel Pinto' : USUARIOS.find(u=>u.rol===rol)?.nombre || 'Usuario', rol, email: 'demo@tecnopanel.cl' };
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').classList.remove('hidden');
+  document.getElementById('sb-nombre').textContent = currentUser.nombre;
+  document.getElementById('sb-rol').textContent = rolLabel(rol);
+  document.getElementById('sb-avatar').textContent = currentUser.nombre.split(' ').map(x=>x[0]).join('').slice(0,2);
+  renderAll();
+  showView('dashboard');
+}
+function doLogout() {
+  document.getElementById('main-app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// =========================================================
+// NAVIGATION
+// =========================================================
+const VIEW_TITLES = { dashboard:'Dashboard', oportunidades:'Oportunidades', ingenieria:'Ingeniería', cubicacion:'Cubicación', presupuestos:'Presupuestos', credito:'Evaluación Crediticia', clientes:'Clientes', usuarios:'Usuarios' };
+
+function showView(v) {
+  currentView = v;
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  const el = document.getElementById('view-' + v);
+  if(el) { el.classList.remove('hidden'); el.classList.add('fade-in'); }
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  const link = document.querySelector(`.sidebar-link[data-view="${v}"]`);
+  if(link) link.classList.add('active');
+  document.getElementById('view-title').textContent = VIEW_TITLES[v] || v;
+  closePanel();
+}
+
+// =========================================================
+// MODALS / PANEL
+// =========================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openPanel() { document.getElementById('panel-bg').classList.add('open'); document.getElementById('detail-panel').classList.add('open'); }
+function closePanel() { document.getElementById('panel-bg').classList.remove('open'); document.getElementById('detail-panel').classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', function(){ this.classList.remove('open'); }));
+
+// =========================================================
+// RENDER ALL
+// =========================================================
+function renderAll() {
+  renderDashboard();
+  renderKanban();
+  renderTabla();
+  renderIngenieria();
+  renderCubicacion();
+  renderPresupuestos();
+  renderCredito();
+  renderClientes();
+  renderUsuarios();
+}
+
+// =========================================================
+// DASHBOARD
+// =========================================================
+function renderDashboard() {
+  const active = OPPS.filter(o => !['Ganado','Perdido'].includes(o.etapa));
+  // Funnel
+  const funnelEl = document.getElementById('stage-funnel');
+  const maxImporte = Math.max(...ETAPAS_ACTIVAS.map(e => active.filter(o=>o.etapa===e).reduce((s,o)=>s+o.importe,0)));
+  funnelEl.innerHTML = ETAPAS_ACTIVAS.map(e => {
+    const opps = active.filter(o=>o.etapa===e);
+    const total = opps.reduce((s,o)=>s+o.importe,0);
+    const pct = maxImporte ? Math.round((total/maxImporte)*100) : 0;
+    const c = ETAPA_COLORS[e];
+    return `<div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-36 text-right truncate">${e}</div>
+      <div class="flex-1 progress-bar"><div class="progress-fill" style="width:${pct}%;background:${etapaColor(e)}"></div></div>
+      <div class="text-xs font-semibold text-gray-700 w-16 text-right">${fmt(total)}</div>
+      <div class="text-xs text-gray-400 w-8 text-center">${opps.length}</div>
+    </div>`;
+  }).join('');
+
+  // Actividad
+  const actEl = document.getElementById('actividad-list');
+  const acts = [
+    { icon:'✅', text:'<b>Muro Cortina</b> marcada como Ganada', time:'hace 2h' },
+    { icon:'📄', text:'Presupuesto emitido para <b>Kit Módulos P2</b>', time:'hace 5h' },
+    { icon:'📐', text:'Nueva tarea asignada en <b>Torre A</b>', time:'ayer' },
+    { icon:'💼', text:'Nueva oportunidad: <b>Fachada Corp. HQ</b>', time:'ayer' },
+    { icon:'🏦', text:'Evaluación crediticia iniciada — <b>Sodimac</b>', time:'hace 2d' },
+  ];
+  actEl.innerHTML = acts.map(a=>`<div class="flex items-start gap-2.5">
+    <span class="text-base">${a.icon}</span>
+    <div class="flex-1"><p class="text-xs text-gray-700 leading-snug">${a.text}</p><p class="text-xs text-gray-400 mt-0.5">${a.time}</p></div>
+  </div>`).join('');
+
+  // Table
+  const tbEl = document.getElementById('dashboard-table');
+  tbEl.innerHTML = OPPS.filter(o=>!['Ganado','Perdido'].includes(o.etapa)).slice(0,5).map(o=>`
+    <tr class="hover:bg-gray-50 cursor-pointer" onclick="openOppDetail(${o.id})">
+      <td class="py-3 px-0"><span class="text-sm font-medium text-gray-800">${o.nombre}</span></td>
+      <td class="py-3 px-4 text-sm text-gray-500">${o.cliente}</td>
+      <td class="py-3 px-4">${tipoBadge(o.tipo)}</td>
+      <td class="py-3 px-4">${etapaBadge(o.etapa)}</td>
+      <td class="py-3 px-4 text-sm font-semibold text-right text-gray-700">${fmt(o.importe)}</td>
+      <td class="py-3 px-4"><div class="flex items-center gap-2"><div class="w-16 progress-bar"><div style="width:${o.prob}%;background:#2563eb" class="h-full rounded"></div></div><span class="text-xs text-gray-500">${o.prob}%</span></div></td>
+    </tr>`).join('');
+}
+
+function etapaColor(e) {
+  const map = { 'Clasificación':'#6b7280','Ingeniería':'#2563eb','Cubicación':'#4f46e5','Presupuestos':'#7c3aed','Revisión Vendedor':'#d97706','Revisión Cliente':'#ea580c','Evaluación Crediticia':'#db2777','Ganado':'#059669','Perdido':'#dc2626' };
+  return map[e]||'#94a3b8';
+}
+
+// =========================================================
+// KANBAN
+// =========================================================
+function renderKanban() {
+  const container = document.getElementById('opp-kanban');
+  const cols = [...ETAPAS_ACTIVAS, 'Ganado','Perdido'];
+  container.innerHTML = cols.map(col => {
+    const opps = OPPS.filter(o=>o.etapa===col);
+    const c = ETAPA_COLORS[col];
+    const total = opps.reduce((s,o)=>s+o.importe,0);
+    return `<div class="kanban-col">
+      <div class="flex items-center justify-between mb-2">
+        <span class="badge ${c.bg} ${c.text} text-xs">${col}</span>
+        <div class="text-right">
+          <div class="text-xs font-bold text-gray-600">${opps.length}</div>
+        </div>
+      </div>
+      ${total > 0 ? `<div class="text-xs text-gray-400 mb-2">${fmt(total)}</div>` : '<div class="text-xs text-gray-300 mb-2">—</div>'}
+      <div class="space-y-2">
+        ${opps.map(o=>oppCard(o)).join('')}
+        ${opps.length===0 ? `<div class="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center text-gray-300 text-xs">Sin oportunidades</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('opp-count').textContent = `${OPPS.filter(o=>!['Ganado','Perdido'].includes(o.etapa)).length} activas · ${OPPS.filter(o=>o.etapa==='Ganado').length} ganadas`;
+}
+
+function oppCard(o) {
+  const tc = TIPO_COLORS[o.tipo];
+  return `<div class="opp-card bg-white border border-gray-100 rounded-xl p-3.5 shadow-sm" onclick="openOppDetail(${o.id})">
+    <div class="flex items-start justify-between mb-2">
+      <div class="text-xs font-semibold text-gray-800 leading-tight flex-1 mr-2">${o.nombre}</div>
+      <span class="tag ${tc.bg} ${tc.text} flex-shrink-0">${o.tipo}</span>
+    </div>
+    <div class="text-xs text-gray-400 mb-2.5">${o.cliente}</div>
+    <div class="flex items-center justify-between">
+      <div class="text-sm font-bold text-gray-700">${fmt(o.importe)}</div>
+      <div class="flex items-center gap-1">
+        <div class="w-10 progress-bar"><div style="width:${o.prob}%;background:${o.prob>70?'#059669':'#2563eb'}" class="h-full rounded"></div></div>
+        <span class="text-xs text-gray-400">${o.prob}%</span>
+      </div>
+    </div>
+    <div class="mt-2.5 pt-2.5 border-t border-gray-50 flex items-center gap-1.5">
+      <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">${o.responsable.split(' ').map(x=>x[0]).join('').slice(0,2)}</div>
+      <span class="text-xs text-gray-400">${o.responsable.split(' ')[0]}</span>
+      <span class="text-gray-200 ml-auto">📅</span>
+      <span class="text-xs text-gray-400">${o.fecha.slice(5)}</span>
+    </div>
+  </div>`;
+}
+
+// =========================================================
+// TABLA OPORTUNIDADES
+// =========================================================
+function renderTabla() {
+  const tbody = document.getElementById('opp-tabla-body');
+  tbody.innerHTML = OPPS.map(o=>`
+    <tr class="hover:bg-gray-50 cursor-pointer" onclick="openOppDetail(${o.id})">
+      <td class="px-5 py-3 font-medium text-gray-800 text-sm">${o.nombre}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${o.cliente}</td>
+      <td class="px-4 py-3">${tipoBadge(o.tipo)}</td>
+      <td class="px-4 py-3">${etapaBadge(o.etapa)}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${o.responsable}</td>
+      <td class="px-5 py-3 text-sm font-semibold text-right">${fmt(o.importe)}</td>
+      <td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><div class="w-12 progress-bar"><div style="width:${o.prob}%" class="h-full rounded" style="background:#2563eb"></div></div><span class="text-xs text-gray-500">${o.prob}%</span></div></td>
+    </tr>`).join('');
+}
+
+function setOppView(v) {
+  oppView = v;
+  document.getElementById('opp-kanban').classList.toggle('hidden', v!=='kanban');
+  document.getElementById('opp-tabla').classList.toggle('hidden', v!=='tabla');
+  document.getElementById('btn-kanban').className = `px-4 py-2 text-xs font-semibold ${v==='kanban'?'bg-blue-600 text-white':'text-gray-600 hover:bg-gray-50'}`;
+  document.getElementById('btn-tabla').className = `px-4 py-2 text-xs font-semibold ${v==='tabla'?'bg-blue-600 text-white':'text-gray-600 hover:bg-gray-50'}`;
+}
+
+// =========================================================
+// DETALLE OPORTUNIDAD (PANEL)
+// =========================================================
+function openOppDetail(id) {
+  const o = OPPS.find(x=>x.id===id);
+  if(!o) return;
+  const flujoKey = getFlujoKey(o);
+  const flujo = FLUJOS[flujoKey];
+  const etapaIdx = flujo.indexOf(o.etapa);
+  const isTerminal = ['Ganado','Perdido'].includes(o.etapa);
+
+  // Stage tracker
+  const stageTracker = isTerminal ? `<div class="flex items-center gap-2 px-5 pb-4">
+    <span class="text-2xl">${o.etapa==='Ganado'?'🎉':'❌'}</span>
+    <div>
+      <div class="font-semibold text-gray-900">${o.etapa}</div>
+      <div class="text-xs text-gray-400">${o.etapa==='Ganado'?'OC cargada — monto confirmado':'Oportunidad cerrada como perdida'}</div>
+    </div>
+  </div>` : `<div class="px-5 pb-5 overflow-x-auto">
+    <div class="flex items-start min-w-max gap-0">
+      ${flujo.map((e,i)=>{
+        const isDone = i < etapaIdx;
+        const isActive = i === etapaIdx;
+        const dotCls = isDone ? 'done' : isActive ? 'active' : 'pending';
+        const lineCls = isDone ? 'done' : 'pending';
+        return `<div class="stage-step ${isDone?'done':''}">
+          <div class="flex flex-col items-center">
+            <div class="stage-dot ${dotCls} mb-1">${isDone?'✓':i+1}</div>
+            <div class="text-xs ${isActive?'text-blue-700 font-semibold':'text-gray-400'} w-16 text-center leading-tight">${e}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // Tareas de ing si aplica
+  const tareasOpp = TAREAS.filter(t=>t.opp_id===id);
+  const tareasSection = (o.etapa==='Ingeniería' || tareasOpp.length) ? `
+    <div class="px-5 pb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="text-sm font-semibold text-gray-700">📐 Tareas de Ingeniería</h4>
+        <button onclick="openModal('modal-nueva-tarea')" class="text-xs text-blue-600 hover:underline">+ Agregar</button>
+      </div>
+      <div class="space-y-2">
+        ${tareasOpp.length ? tareasOpp.map(t=>`
+          <div class="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5">
+            <span class="text-base">${t.estado==='Completada'?'✅':t.estado==='En progreso'?'🔵':'⭕'}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-medium text-gray-800">${t.nombre}</div>
+              <div class="text-xs text-gray-400">${t.responsable} · ${t.horas}h estimadas</div>
+            </div>
+            ${t.archivo?`<span class="text-xs text-blue-600 cursor-pointer hover:underline">📎 ${t.archivo}</span>`:''}
+            ${estadoBadge(t.estado)}
+          </div>`).join('') : '<p class="text-xs text-gray-400 italic">Sin tareas asignadas aún</p>'}
+      </div>
+    </div>` : '';
+
+  // Siguiente paso
+  const nextStep = !isTerminal ? `
+    <div class="px-5 pb-4">
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+        <div class="text-xs font-semibold text-blue-700 mb-1">Próxima acción</div>
+        <div class="text-sm text-blue-900">${nextAction(o, flujo, etapaIdx)}</div>
+        <div class="flex gap-2 mt-3">
+          ${o.etapa==='Ganado'||o.etapa==='Perdido'?'':
+            `<button class="text-xs bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-800">Avanzar etapa →</button>`}
+          <button class="text-xs border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100">Agregar nota</button>
+        </div>
+      </div>
+    </div>` : '';
+
+  const tc = TIPO_COLORS[o.tipo];
+  const ec = ETAPA_COLORS[o.etapa];
+
+  document.getElementById('panel-content').innerHTML = `
+    <div class="bg-white min-h-full">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between z-10">
+        <div class="flex-1 min-w-0 mr-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="tag ${tc.bg} ${tc.text}">${o.tipo}</span>
+            <span class="badge ${ec.bg} ${ec.text} text-xs">${o.etapa}</span>
+          </div>
+          <h2 class="text-lg font-bold text-gray-900 leading-tight">${o.nombre}</h2>
+          <p class="text-sm text-gray-400 mt-0.5">${o.cliente}</p>
+        </div>
+        <button onclick="closePanel()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none flex-shrink-0">×</button>
+      </div>
+
+      <!-- Stage tracker -->
+      <div class="pt-5 pb-0">
+        <div class="px-5 mb-3"><h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Flujo de Etapas</h4></div>
+        ${stageTracker}
+      </div>
+
+      <!-- Info grid -->
+      <div class="px-5 py-4 grid grid-cols-3 gap-4 border-t border-gray-50">
+        <div><div class="text-xs text-gray-400 mb-0.5">Importe Estimado</div><div class="text-base font-bold text-gray-900">${fmt(o.importe)}</div></div>
+        <div><div class="text-xs text-gray-400 mb-0.5">Probabilidad</div><div class="flex items-center gap-1.5 mt-0.5"><div class="w-16 progress-bar"><div style="width:${o.prob}%;background:#2563eb" class="h-full rounded"></div></div><span class="text-sm font-semibold">${o.prob}%</span></div></div>
+        <div><div class="text-xs text-gray-400 mb-0.5">Fecha Cierre</div><div class="text-sm font-medium text-gray-700">${o.fecha}</div></div>
+        <div class="col-span-2"><div class="text-xs text-gray-400 mb-0.5">Responsable</div><div class="flex items-center gap-2"><div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">${o.responsable.split(' ').map(x=>x[0]).join('').slice(0,2)}</div><span class="text-sm font-medium">${o.responsable}</span></div></div>
+        <div><div class="text-xs text-gray-400 mb-0.5">Req. Ingeniería</div><div class="text-sm font-medium">${o.requiere_ing?'✅ Sí':'❌ No'}</div></div>
+      </div>
+
+      ${o.obs ? `<div class="px-5 pb-4 border-t border-gray-50"><div class="text-xs text-gray-400 mb-1 pt-3">Observaciones</div><p class="text-sm text-gray-600 leading-relaxed">${o.obs}</p></div>` : ''}
+
+      <div class="border-t border-gray-50">
+        ${tareasSection}
+        ${nextStep}
+      </div>
+
+      <!-- Botones de cierre -->
+      ${!isTerminal ? `<div class="px-5 py-4 border-t border-gray-100 flex gap-2">
+        <button class="flex-1 text-xs bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg font-semibold transition-colors">🎉 Marcar Ganada</button>
+        <button class="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2.5 rounded-lg font-semibold transition-colors">❌ Marcar Perdida</button>
+      </div>` : ''}
+    </div>`;
+
+  openPanel();
+}
+
+function nextAction(o, flujo, idx) {
+  const actions = {
+    'Clasificación': 'Verificar documentos y datos del cliente. Si están completos, enviar a Ingeniería.',
+    'Ingeniería': 'Jefe de Ingeniería debe asignar tareas. Los ingenieros deben completar los planos.',
+    'Cubicación': 'Cubicador debe cargar el Excel de costos por línea y completar la cubicación.',
+    'Presupuestos': 'Presupuestista recibe documento de cubicación y debe valorizar y emitir presupuesto.',
+    'Revisión Vendedor': 'Vendedor revisa el presupuesto. Si ajusta el precio, requiere aprobación de Gerencia.',
+    'Revisión Cliente': 'Enviar presupuesto al cliente y registrar su respuesta (Aprueba / Rechaza / Negocia).',
+    'Evaluación Crediticia': 'Finanzas debe evaluar el crédito del cliente. Si aprueba, se procede con la OC.',
+  };
+  return actions[o.etapa] || 'Continuar con el flujo.';
+}
+
+// =========================================================
+// INGENIERÍA
+// =========================================================
+function renderIngenieria() {
+  const oppsEng = OPPS.filter(o=>o.etapa==='Ingeniería'||TAREAS.some(t=>t.opp_id===o.id));
+  const el = document.getElementById('ing-content');
+  el.innerHTML = oppsEng.map(o=>{
+    const tareas = TAREAS.filter(t=>t.opp_id===o.id);
+    const done = tareas.filter(t=>t.estado==='Completada').length;
+    return `<div class="px-5 py-4">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="flex-1">
+          <div class="font-medium text-gray-900 text-sm">${o.nombre}</div>
+          <div class="text-xs text-gray-400">${o.cliente} · ${tipoBadge(o.tipo)} · ${tareas.length} tareas · ${done}/${tareas.length} completadas</div>
+        </div>
+        <div class="w-24 progress-bar"><div class="progress-fill" style="width:${tareas.length?Math.round(done/tareas.length*100):0}%"></div></div>
+        <button onclick="openOppDetail(${o.id})" class="text-xs text-blue-600 hover:underline">Ver detalle →</button>
+      </div>
+      <div class="space-y-1.5 ml-2">
+        ${tareas.map(t=>`<div class="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
+          <span>${t.estado==='Completada'?'✅':t.estado==='En progreso'?'🔵':'⭕'}</span>
+          <div class="flex-1 text-xs text-gray-700">${t.nombre}</div>
+          <div class="text-xs text-gray-400">${t.responsable}</div>
+          <div class="text-xs text-gray-400">${t.horas}h</div>
+          ${t.archivo?`<span class="text-xs text-blue-500 cursor-pointer">📎 ${t.archivo}</span>`:'<button class="text-xs text-gray-300 hover:text-blue-500">⬆ Subir</button>'}
+          ${estadoBadge(t.estado)}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// =========================================================
+// CUBICACIÓN
+// =========================================================
+function renderCubicacion() {
+  const el = document.getElementById('cub-table');
+  el.innerHTML = CUBICACIONES.map(c=>`
+    <tr class="hover:bg-gray-50">
+      <td class="px-5 py-3 text-sm font-medium text-gray-800">${c.opp}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${c.cubicador}</td>
+      <td class="px-4 py-3">${estadoBadge(c.estado)}</td>
+      <td class="px-4 py-3 text-sm font-bold text-right text-gray-700">${fmt(c.costo)}</td>
+      <td class="px-4 py-3"><span class="text-xs text-blue-600 cursor-pointer hover:underline">📎 ${c.archivo}</span></td>
+      <td class="px-4 py-3 text-xs text-gray-400">${c.fecha}</td>
+      <td class="px-4 py-3"><button class="text-xs text-blue-600 hover:underline">Ver</button></td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// PRESUPUESTOS
+// =========================================================
+function renderPresupuestos() {
+  const el = document.getElementById('pres-table');
+  el.innerHTML = PRESUPUESTOS_DATA.map(p=>`
+    <tr class="hover:bg-gray-50">
+      <td class="px-5 py-3 text-sm font-medium text-gray-800">${p.opp}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${p.responsable}</td>
+      <td class="px-4 py-3">${estadoBadge(p.estado)}</td>
+      <td class="px-4 py-3 text-sm text-right text-gray-500">${fmt(p.monto_cub)}</td>
+      <td class="px-4 py-3 text-sm font-bold text-right text-gray-700">${fmt(p.monto_pres)}</td>
+      <td class="px-4 py-3"><button class="text-xs text-blue-600 hover:underline">Ver PDF</button></td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// EVALUACIÓN CREDITICIA
+// =========================================================
+function renderCredito() {
+  const el = document.getElementById('cred-table');
+  el.innerHTML = CREDITOS.map(c=>`
+    <tr class="hover:bg-gray-50">
+      <td class="px-5 py-3 text-sm font-medium text-gray-800">${c.opp}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${c.cliente}</td>
+      <td class="px-4 py-3"><span class="badge bg-amber-100 text-amber-700 text-xs">${c.tipo_cli==='nuevo'?'Cliente Nuevo':'Cliente Antiguo'}</span></td>
+      <td class="px-4 py-3 text-sm text-gray-500">${c.responsable}</td>
+      <td class="px-4 py-3">${estadoBadge(c.resultado)}</td>
+      <td class="px-4 py-3"><div class="flex gap-2"><button class="text-xs bg-green-600 text-white px-2 py-1 rounded font-semibold hover:bg-green-700">Aprobar</button><button class="text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded font-semibold hover:bg-red-100">Rechazar</button></div></td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// CLIENTES
+// =========================================================
+function renderClientes() {
+  const el = document.getElementById('cli-table');
+  el.innerHTML = CLIENTES.map(c=>`
+    <tr class="hover:bg-gray-50">
+      <td class="px-5 py-3 font-medium text-gray-800 text-sm">${c.nombre}</td>
+      <td class="px-4 py-3 text-xs text-gray-500">${c.rut}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${c.contacto}</td>
+      <td class="px-4 py-3 text-xs text-gray-500">${c.industria}</td>
+      <td class="px-4 py-3"><span class="badge ${c.tipo==='antiguo'?'bg-blue-50 text-blue-700':'bg-gray-100 text-gray-600'}">${c.tipo==='antiguo'?'Antiguo':'Nuevo'}</span></td>
+      <td class="px-4 py-3 text-center">${c.credito?'<span class="text-green-600 font-bold">✓</span>':'<span class="text-gray-300">—</span>'}</td>
+      <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">${c.opps}</td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// USUARIOS
+// =========================================================
+function renderUsuarios() {
+  const el = document.getElementById('usr-table');
+  el.innerHTML = USUARIOS.map(u=>`
+    <tr class="hover:bg-gray-50">
+      <td class="px-5 py-3 font-medium text-gray-800 text-sm">${u.nombre}</td>
+      <td class="px-4 py-3 text-sm text-gray-400">${u.email}</td>
+      <td class="px-4 py-3"><span class="badge bg-slate-100 text-slate-600">${rolLabel(u.rol)}</span></td>
+      <td class="px-4 py-3 text-center"><span class="badge ${u.activo?'bg-green-100 text-green-700':'bg-gray-100 text-gray-400'}">${u.activo?'Activo':'Inactivo'}</span></td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// NUEVA OPORTUNIDAD — FLOW PREVIEW
+// =========================================================
+function updateModalFlow() {
+  const tipo = document.getElementById('modal-tipo').value;
+  const wrap = document.getElementById('req-ing-wrap');
+  const preview = document.getElementById('modal-flow-preview');
+  wrap.classList.toggle('hidden', tipo !== 'Kit');
+  if(!tipo) { preview.innerHTML = '<span class="italic text-gray-400">Selecciona el tipo de venta para ver el flujo</span>'; return; }
+  let key = tipo==='Kit' ? (document.getElementById('req-ing')?.checked ? 'Kit-ing' : 'Kit-noing') : tipo;
+  const fl = FLUJOS[key] || FLUJOS[tipo];
+  if(!fl) return;
+  preview.innerHTML = fl.map((e,i)=>`<span class="inline-flex items-center gap-1"><span class="badge bg-gray-100 text-gray-600">${e}</span>${i<fl.length-1?'<span class="text-gray-300">→</span>':''}</span>`).join(' ') + '<span class="text-gray-300 mx-1">→</span><span class="badge bg-green-100 text-green-700">Ganado/Perdido</span>';
+}
+
+// Rol selector styling
+document.querySelectorAll('.rol-opt').forEach(label => {
+  label.addEventListener('click', () => {
+    document.querySelectorAll('.rol-opt').forEach(l => {
+      l.className = 'rol-opt flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-gray-300';
+      l.querySelector('span').className = 'text-xs font-medium';
+    });
+    label.className = 'rol-opt flex items-center gap-2 border-2 border-blue-600 bg-blue-50 rounded-lg px-3 py-2 cursor-pointer';
+    label.querySelector('span').className = 'text-xs font-semibold text-blue-700';
+    label.querySelector('input').checked = true;
+  });
+});
+</script>
+</body>
+</html>
